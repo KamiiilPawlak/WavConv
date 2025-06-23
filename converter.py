@@ -25,8 +25,7 @@ except ValueError as e:
 
 
 
-
-def convert_audio(input_path, output_path, output_format):
+def convert_audio(input_path, output_path, output_format, **kwargs):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"Utworzono katalog wyjściowy: {output_dir}")
@@ -40,12 +39,51 @@ def convert_audio(input_path, output_path, output_format):
         print(f"Ładowanie pliku: {input_path}")
         audio = AudioSegment.from_file(input_path)
 
+        if output_format == "wav":
+
+            if 'sample_rate' in kwargs:
+                try:
+                    sample_rate = int(kwargs['sample_rate'])
+                    audio = audio.set_frame_rate(sample_rate)
+                    print(f"Ustawiono częstotliwość próbkowania na: {sample_rate} Hz")  # Poprawiona literówka
+                except ValueError:
+                    print("Ostrzeżenie: Nieprawidłowa częstotliwość próbkowania. Użyto domyślnej.")
+
+            if 'bit_depth' in kwargs:
+                try:
+                    bit_depth = int(kwargs['bit_depth'])
+                    bit_depth_value = [8,16,24,32]
+                    if bit_depth in bit_depth_value:
+                        audio = audio.set_sample_width(bit_depth // 8)
+                        print(f"Ustawiono głębię bitową na: {bit_depth} bitów.")
+                    else:
+                        print(
+                            f"Ostrzeżenie: Nieobsługiwana głębia bitowa ({bit_depth}). Dostępne: 8, 16, 24, 32.")
+                except ValueError:
+                    print("Ostrzeżenie: Nieprawidłowa głębia bitowa. Użyto domyślnej.")
+
         print(f"Konwertowanie pliku do formatu {output_format}...")
         audio.export(output_path, format=output_format)
         print(f"Konwersja zakończona pomyślnie: {output_path}")
     except Exception as e:
         print(f"Wystąpił błąd podczas konwersji: {e}")
         print("Upewnij się, że FFmpeg jest poprawnie zainstalowany i dostępny w PATH.")
+        sys.exit(1)
 
 
-convert_audio(input_file, output_file, name_format)
+
+
+if name_format == 'wav':
+
+    sample_rate_input = input("Podaj częstotliwość próbkowania (np. 44100, pozostaw puste dla domyślnej): ")
+    bit_depth_input = input("Podaj głębię bitową (np. 16, 24, 32, pozostaw puste dla domyślnej): ")
+
+    wav_params = {}
+    if sample_rate_input:
+        wav_params['sample_rate'] = sample_rate_input
+    if bit_depth_input:
+        wav_params['bit_depth'] = bit_depth_input
+
+    convert_audio(input_file, output_file, name_format, **wav_params)
+else:
+    convert_audio(input_file, output_file, name_format)
